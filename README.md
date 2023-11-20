@@ -1,5 +1,5 @@
 # GulLiver
-An image analysis package for whole slide liver immunostainings
+An image analysis package for whole slide liver immunostainings.
 
 
 # Installation

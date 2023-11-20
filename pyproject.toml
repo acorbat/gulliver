@@ -1,0 +1,29 @@
+[project]
+name = "gulliver"
+description = "An image analysis package for whole slide liver immunostainings."
+version = "0.1.0"
+authors = [
+  {name = "A. Corbat", email = "acorbat@ki.se"}
+]
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+requires-python = ">=3.6"
+keywords = ["Liver", "Alagille Syndrome", "Whole Slide", "Immunofluorescence"]
+maintainers = [
+  {name = "A. Corbat", email = "agustin.corbat@gmail.com"}
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Scientific Community"
+]
+dynamic = ["dependencies", "optional-dependencies", "version"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
+optional-dependencies.test = {file = "requirements.test.txt"}
+
+[build-system]
+requires = ["setuptools", "wheel", "setuptools_scm[toml]"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
