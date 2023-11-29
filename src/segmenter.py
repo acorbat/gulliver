@@ -7,7 +7,6 @@ from skimage.morphology import (
     remove_small_objects,
     remove_small_holes,
 )
-from skimage.measure import regionprops
 
 
 def segment_liver(nuclei_channel: np.ndarray) -> np.ndarray:
