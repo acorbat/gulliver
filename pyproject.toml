@@ -1,7 +1,6 @@
 [project]
 name = "gulliver"
 description = "An image analysis package for whole slide liver immunostainings."
-version = "0.1.0"
 authors = [
   {name = "A. Corbat", email = "acorbat@ki.se"}
 ]
