@@ -5,7 +5,7 @@ authors = [
   {name = "A. Corbat", email = "acorbat@ki.se"}
 ]
 readme = "README.md"
-license = {file = "LICENSE.txt"}
+license = {file = "LICENSE"}
 requires-python = ">=3.6"
 keywords = ["Liver", "Alagille Syndrome", "Whole Slide", "Immunofluorescence"]
 maintainers = [
@@ -16,6 +16,10 @@ classifiers = [
   "Intended Audience :: Scientific Community"
 ]
 dynamic = ["dependencies", "optional-dependencies", "version"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gulliver"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = "requirements.txt"}
