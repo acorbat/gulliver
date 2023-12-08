@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Callable, Tuple
+from typing import Callable, Tuple, List
 
 from apoc import PixelClassifier
 import numpy as np
@@ -54,6 +54,25 @@ def chunk_and_process_2d_array(
     # stitch the subarrays back together into a single numpy array
     output_array = np.block(sub_arrays)
     return output_array[0]
+
+
+def relabel_image(
+    label_image: np.ndarray,
+    new_labels: List,
+    chunk_shape: Tuple = (5 * 1024, 5 * 1024),
+) -> np.ndarray:
+    """Relabels the labels in label_image with the new labels. It assumes the
+    first label in the new_labels corresponds to label 1 and onwards."""
+    annotation = [0] + new_labels
+
+    def my_replacer(image):
+        return cle.replace_intensities(image, annotation)
+
+    predicted_image = chunk_and_process_2d_array(
+        label_image, chunk_shape=chunk_shape, processing_function=my_replacer
+    )
+    predicted_image = predicted_image.astype(int)
+    return predicted_image
 
 
 def predict(image: np.ndarray, segmenter: PixelClassifier) -> np.ndarray:
