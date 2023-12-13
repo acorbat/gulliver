@@ -31,3 +31,30 @@ def get_properties(
         ),
     )
     return pd.DataFrame.from_dict(properties)
+
+
+def relate_structures(
+    labels: np.ndarray, related_image: np.ndarray
+) -> pd.DataFrame:
+    """Generates a properties table containing the maximum, minimum and mean
+    intensities of the related_image in the labeled image.
+
+    This function can be used for example:
+    - related labeled can be a manually painted image and the maximum will yield
+    the value inside the label
+    - related label can be a distance image and the minimum yields the minimum
+    distance to the structure.
+    - related label can be some mask and the mean yields the percentage of
+    positive pixels"""
+    properties = regionprops_table(
+        labels,
+        intensity_image=related_image,
+        properties=(
+            "area",
+            "intensity_max",
+            "intensity_min",
+            "intensity_mean",
+            "label",
+        ),
+    )
+    return pd.DataFrame.from_dict(properties)
