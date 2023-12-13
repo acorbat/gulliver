@@ -9,12 +9,16 @@ from skimage.filters import gaussian, threshold_otsu
 from skimage.morphology import (
     binary_opening,
     binary_closing,
+    binary_dilation,
+    dilation,
     disk,
     label,
     remove_small_objects,
     remove_small_holes,
 )
 import zarr
+
+from .quantify import relate_structures
 
 MODULE_DIRECTORY = os.path.dirname(__file__)
 
@@ -167,3 +171,42 @@ def find_structures(
     n = n.create_dataset("labels", data=not_well_stained)
 
     return segmentations
+
+
+def find_vessel_regions(
+    holes: np.ndarray, not_well_stained: np.ndarray
+) -> np.ndarray:
+    """Finds big regions that could be portal triads, portal veins or central
+    veins. It discards huge regions that could be not well stained regions."""
+    veins = remove_small_objects(label(holes), min_size=1000)
+    mesenchyma = remove_small_objects(label(not_well_stained), min_size=3000)
+    structures = np.logical_or(veins > 0, mesenchyma > 0)
+    structures = np.logical_xor(
+        remove_small_objects(label(structures), min_size=1000000), structures
+    )
+    structures = label(binary_dilation(structures, disk(20)))
+    return structures
+
+
+def find_borders(label: np.ndarray, size: int = 40):
+    """Creates a labeled mask of the surrounding region of each label."""
+    borders = cle.dilate_labels(label, radius=size) - label
+    return borders.get().astype(int)
+
+
+def find_portal_regions(
+    holes: np.ndarray, not_well_stained: np.ndarray, gs_positive: np.ndarray
+) -> np.ndarray:
+    """First finds regions corresponding to portal triads, portal veins or
+    central veins and then discards suspected central vein regions considering
+    GS staining."""
+    regions = find_vessel_regions(holes, not_well_stained)
+    border_regions = find_borders(regions)
+    relations_table = relate_structures(border_regions, gs_positive)
+    relations_table["keep"] = [
+        label if mean < 0.2 else 0
+        for label, mean in relations_table[["label", "intensity_mean"]].values
+    ]
+    regions = relabel_image(regions, list(relations_table["keep"].values))
+    regions = cle.dilate_labels(regions, radius=100)
+    return regions
