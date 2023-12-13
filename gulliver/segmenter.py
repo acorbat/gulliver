@@ -97,7 +97,7 @@ def predict_sox9(image: np.ndarray) -> np.ndarray:
 
 
 def predict_holes(image: np.ndarray) -> np.ndarray:
-    """Performs semantic segmentation fo holes and debris on the image. Returns
+    """Performs semantic segmentation for holes and debris on the image. Returns
     a stack where the first image corresponds to holes and the second one to
     labeled debris."""
     hole_segmenter = PixelClassifier(
@@ -120,6 +120,21 @@ def separate_holes_and_debris(
         min_size=200,
     )
     return holes, not_well_stained
+
+
+def predict_gs_positive(image: np.ndarray) -> np.ndarray:
+    """Performs semantic segmentation for GS positive structures on the
+    image."""
+    gs_segmenter = PixelClassifier(
+        opencl_filename=os.path.join(MODULE_DIRECTORY, "GSPixelClassifier.cl")
+    )
+    semantic_segmentation = predict(image=image, segmenter=gs_segmenter)
+
+    semantic_segmentation = binary_closing(semantic_segmentation > 1, disk(10))
+    semantic_segmentation = remove_small_objects(
+        label(semantic_segmentation), min_size=9000
+    )
+    return semantic_segmentation
 
 
 def find_structures(
