@@ -165,3 +165,6 @@ data/
 
 # Ignore vscode config files
 .vscode/
+
+# Ignore versioning
+gulliver/_version.py

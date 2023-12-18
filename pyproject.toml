@@ -30,3 +30,4 @@ requires = ["setuptools", "wheel", "setuptools_scm[toml]"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+write_to = "gulliver/_version.py"
