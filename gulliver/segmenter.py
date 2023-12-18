@@ -173,6 +173,18 @@ def find_structures(
     return segmentations
 
 
+def clean_segmentations(segmentations: zarr.hierarchy.Group) -> None:
+    """Uses liver segmentation to remove objects outside the liver inside the
+    segmentations object"""
+    liver_mask = segmentations["liver"]["labels"][:] > 1
+
+    for group in segmentations.groups():
+        if group[0] == "liver":
+            continue
+
+        group[1]["labels"].set_mask_selection(liver_mask, 0)
+
+
 def find_vessel_regions(
     holes: np.ndarray, not_well_stained: np.ndarray
 ) -> np.ndarray:
