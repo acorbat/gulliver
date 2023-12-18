@@ -8,11 +8,19 @@ from ome_zarr.writer import write_image, write_labels
 import zarr
 
 
-def get_image(path: Path, scene: int = 0) -> np.ndarray:
+def get_image(path: Path, scene: int = 0) -> zarr.hierarchy.Group:
     """Gets the selected scene from the CZI File as an array."""
     file = CZISceneFile(path, scene)
     img = np.squeeze(file.asarray())
-    return img
+
+    scale = {"z": file.scale_z_um, "y": file.scale_y_um, "x": file.scale_x_um}
+
+    root = zarr.group()
+    root.attrs["scale"] = scale
+    for this_img, channel in zip(img, ["DAPI", "Sox9", "GS"]):
+        this_group = root.create_group(channel)
+        this_group.create_dataset("image", data=this_img)
+    return root
 
 
 def save_img(
