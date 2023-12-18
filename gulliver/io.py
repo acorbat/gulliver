@@ -25,7 +25,7 @@ def get_image(path: Path, scene: int = 0) -> zarr.hierarchy.Group:
 
 def save_img(
     path: Path,
-    original_image: np.ndarray,
+    original_image: zarr.hierarchy.Group,
     labeled_images: zarr.hierarchy.Group,
 ) -> None:
     """Saves the original image with the segmentation in multiscale OME Zarr
@@ -50,10 +50,16 @@ def save_img(
         ]
     }
     write_image(
-        image=original_image,
+        image=np.stack(
+            [
+                original_image[channel]["image"]
+                for channel in ("DAPI", "Sox9", "GS")
+            ]
+        ),
         group=root,
         axes="cyx",
         storage_options=dict(chunks=(1, 2046, 2046)),
+        metadata=original_image.attrs["scale"],
     )
 
     for label_name, label_image in labeled_images.items():

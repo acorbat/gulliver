@@ -176,13 +176,14 @@ def find_structures(
 def clean_segmentations(segmentations: zarr.hierarchy.Group) -> None:
     """Uses liver segmentation to remove objects outside the liver inside the
     segmentations object"""
-    liver_mask = segmentations["liver"]["labels"][:] > 1
+    liver_mask = segmentations["liver"]["labels"][:] < 1
 
     for group in segmentations.groups():
         if group[0] == "liver":
             continue
 
         group[1]["labels"].set_mask_selection(liver_mask, 0)
+    return segmentations
 
 
 def find_vessel_regions(
