@@ -10,7 +10,7 @@ from skimage.morphology import (
     binary_opening,
     binary_closing,
     binary_dilation,
-    dilation,
+    binary_erosion,
     disk,
     label,
     remove_small_objects,
@@ -31,9 +31,12 @@ def segment_liver(nuclei_channel: np.ndarray) -> np.ndarray:
     liver_masks = binary_opening(
         liver_masks, footprint=disk(30, decomposition="sequence")
     )
+    liver_masks = binary_erosion(
+        liver_masks, disk(radius=30, decomposition="sequence")
+    )
     liver_masks = remove_small_holes(liver_masks, area_threshold=10**8)
     liver_masks = label(liver_masks)
-    liver_masks = remove_small_objects(liver_masks, min_size=10000)
+    liver_masks = remove_small_objects(liver_masks, min_size=1000000)
     return liver_masks
 
 
@@ -183,7 +186,6 @@ def clean_segmentations(segmentations: zarr.hierarchy.Group) -> None:
             continue
 
         group[1]["labels"].set_mask_selection(liver_mask, 0)
-    return segmentations
 
 
 def find_vessel_regions(
