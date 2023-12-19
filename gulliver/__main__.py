@@ -13,6 +13,53 @@ from . import __version__
 logger = logging.getLogger(__name__)
 
 
+def main():
+    logger.setLevel(logging.INFO)
+    parser = ArgumentParser()
+    parser.add_argument(
+        "command",
+        type=str,
+        choices=["segment", "quantify"],
+        help="Command to run. You can choose between segment "
+        + "and quantify.",
+    )
+    parser.add_argument(
+        "path",
+        type=Path,
+        help="Path to file or folder to process",
+    )
+    parser.add_argument(
+        "--scene",
+        type=int,
+        help="Scene to process if analyze a single file was " + "chosen",
+    )
+    parser.add_argument(
+        "--chunk-multiplier",
+        type=int,
+        default=7,
+        help="multiplier to determine maximum size of chunk "
+        + "to send to GPU. (chunk * (1024, 1024))",
+    )
+    args = parser.parse_args()
+
+    is_folder = args.path.is_dir()
+
+    if args.command == "segment":
+        if is_folder:
+            segment_folder(
+                folderpath=args.path,
+                chunk_multiplier=args.chunk_multiplier,
+            )
+        else:
+            segment_file(
+                filepath=args.path,
+                scene=args.scene,
+                chunk_multiplier=args.chunk_multiplier,
+            )
+    elif args.command == "quantify":
+        raise NotImplementedError("Not implemented yet")
+
+
 def segment_file(
     filepath: Path,
     scene: int,
@@ -37,7 +84,7 @@ def segment_file(
     clean_segmentations(segmentations)
 
     if savepath is None:
-        savepath = filepath.with_suffix(f"_scene_{scene}.zarr")
+        savepath = filepath.with_name(filepath.stem + f"_scene_{scene}.zarr")
     logger.info("Saving image at %s" % str(savepath))
     save_img(savepath, image, segmentations)
 
@@ -47,18 +94,20 @@ def segment_folder(
     chunk_multiplier: int = 7,
 ) -> None:
     """Runs segment file no a whole folder and subfolders."""
-    filepaths = folderpath.rglob("*.czi")
+    filepaths = list(folderpath.rglob("*.czi"))
 
     logger.info(f"{len(filepaths)} images were found.")
     for filepath in tqdm(filepaths):
-        number_of_scenes = CZISceneFile(filepath).get_num_scenes()
+        number_of_scenes = CZISceneFile(filepath, 0).get_num_scenes(filepath)
 
         logger.info(
             f"Segmenting {number_of_scenes} scenes" + "from image {filepath}"
         )
         for scene in range(number_of_scenes):
             logger.info(f"Segmenting scene number {scene}")
-            savepath = filepath.with_suffix(f"_scene_{scene}.zarr")
+            savepath = filepath.with_name(
+                filepath.stem + f"_scene_{scene}.zarr"
+            )
             segment_file(
                 filepath=filepath,
                 scene=scene,
@@ -68,13 +117,4 @@ def segment_folder(
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument(
-        "path", type=Path, help="Path to file or folder to process"
-    )
-    parser.add_argument(
-        "--chunk-multiplier",
-        type=int,
-        help="multiplier to determine maximum size of chunk "
-        + "to send to GPU",
-    )
+    main()

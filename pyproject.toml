@@ -17,6 +17,9 @@ classifiers = [
 ]
 dynamic = ["dependencies", "optional-dependencies", "version"]
 
+[project.scripts]
+gulliver = "gulliver.__main__:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["gulliver"]
