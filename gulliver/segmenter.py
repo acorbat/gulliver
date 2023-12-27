@@ -209,7 +209,7 @@ def find_borders(label: np.ndarray, size: int = 40):
     return borders.get().astype(int)
 
 
-def find_portal_regions(
+def find_portal_veins(
     holes: np.ndarray, not_well_stained: np.ndarray, gs_positive: np.ndarray
 ) -> np.ndarray:
     """First finds regions corresponding to portal triads, portal veins or
@@ -223,5 +223,10 @@ def find_portal_regions(
         for label, mean in relations_table[["label", "intensity_mean"]].values
     ]
     regions = relabel_image(regions, list(relations_table["keep"].values))
-    regions = cle.dilate_labels(regions, radius=100)
+    return regions
+
+
+def find_portal_regions(portal_veins: np.ndarray, radius: int) -> np.ndarray:
+    """Exapnds the portal veins to define a region to be analyzed"""
+    regions = cle.dilate_labels(portal_veins, radius=radius)
     return regions
