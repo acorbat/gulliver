@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Dict
 
@@ -8,19 +9,68 @@ from ome_zarr.writer import write_image, write_labels
 import zarr
 
 
-def get_image(path: Path, scene: int = 0) -> zarr.hierarchy.Group:
-    """Gets the selected scene from the CZI File as an array."""
+logger = logging.getLogger(__name__)
+
+
+def get_image(
+    path: Path, scene: int = 0, remake: bool = False
+) -> zarr.hierarchy.Group:
+    """Gets the selected scene from the CZI File as an array and makes an
+    OME Zarr."""
     file = CZISceneFile(path, scene)
-    img = np.squeeze(file.asarray())
+    image = np.squeeze(file.asarray())
 
     scale = {"z": file.scale_z_um, "y": file.scale_y_um, "x": file.scale_x_um}
 
-    root = zarr.group()
+    savepath = path.with_suffix(".zarr")
+    if savepath.exists():
+        logger.warn("zarr image already exists")
+        store = parse_url(savepath, mode="w").store
+        return zarr.group(store=store)
+
+    store = parse_url(savepath, mode="w").store
+    root = zarr.group(store=store)
     root.attrs["scale"] = scale
-    for this_img, channel in zip(img, ["DAPI", "Sox9", "GS", "elastin"]):
-        this_group = root.create_group(channel)
-        this_group.create_dataset("image", data=this_img)
+    root.attrs["omero"] = {
+        "channels": [
+            {
+                "color": "FFFFFF",
+                "label": "DAPI",
+            },
+            {
+                "color": "FFFF00",
+                "label": "Sox9",
+            },
+            {
+                "color": "FF00FF",
+                "label": "GS",
+            },
+            {
+                "color": "00FFFF",
+                "label": "elastin",
+            },
+        ]
+    }
+    write_image(
+        image=np.stack(image),
+        group=root,
+        axes="cyx",
+        storage_options=dict(chunks=(1, 2048, 2048)),
+        metadata=root.attrs["scale"],
+    )
     return root
+
+
+def add_labels(
+    root: zarr.hierarchy.Group, label_image: np.ndarray, label_name: str
+) -> None:
+    """Add a labeled image to the OME Zarr object."""
+    write_labels(
+        labels=label_image,
+        group=root,
+        name=label_name,
+        axes="yx",
+    )
 
 
 def save_img(
@@ -58,7 +108,7 @@ def save_img(
         ),
         group=root,
         axes="cyx",
-        storage_options=dict(chunks=(1, 2046, 2046)),
+        storage_options=dict(chunks=(1, 2048, 2048)),
         metadata=original_image.attrs["scale"],
     )
 
