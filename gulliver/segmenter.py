@@ -25,6 +25,8 @@ MODULE_DIRECTORY = os.path.dirname(__file__)
 
 def segment_liver(nuclei_channel: np.ndarray) -> np.ndarray:
     """Segments liver area from nuclei stained images."""
+    if nuclei_channel.ndim > 2:
+        nuclei_channel = np.mean(nuclei_channel, axis=0)
     nuclei_channel = gaussian(nuclei_channel, 20)
     threshold = threshold_otsu(nuclei_channel)
     liver_masks = nuclei_channel > threshold
