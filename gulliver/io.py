@@ -17,7 +17,7 @@ def get_image(path: Path, scene: int = 0) -> zarr.hierarchy.Group:
 
     root = zarr.group()
     root.attrs["scale"] = scale
-    for this_img, channel in zip(img, ["DAPI", "Sox9", "GS"]):
+    for this_img, channel in zip(img, ["DAPI", "Sox9", "GS", "elastin"]):
         this_group = root.create_group(channel)
         this_group.create_dataset("image", data=this_img)
     return root
