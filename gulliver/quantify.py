@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy.ndimage import distance_transform_edt
 from skimage.measure import regionprops_table
 
 
@@ -58,3 +59,32 @@ def relate_structures(
         ),
     )
     return pd.DataFrame.from_dict(properties)
+
+
+def find_distances(
+    labels: np.ndarray,
+    relative_to_mask: np.ndarray,
+    suffix: str | None = None,
+) -> pd.DataFrame:
+    """Calculates distance estimations between each labeled object and the
+    mask provided."""
+    distance_map = distance_transform_edt(~relative_to_mask.astype(bool))
+    table = relate_structures(labels=labels, related_image=distance_map)
+    table.drop(columns="area", inplace=True)
+    table.rename(
+        columns={
+            column_name: column_name.replace("intensity", "distance")
+            for column_name in table.columns
+        },
+        inplace=True,
+    )
+    if suffix is not None:
+        table.rename(
+            columns={
+                column_name: "_".join([suffix, column_name])
+                for column_name in table.columns
+                if "distance" in column_name
+            },
+            inplace=True,
+        )
+    return table
