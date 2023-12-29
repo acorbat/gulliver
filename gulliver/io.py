@@ -19,16 +19,16 @@ def get_image(
 ) -> zarr.hierarchy.Group:
     """Gets the selected scene from the CZI File as an array and makes an
     OME Zarr, or loads it if it was already created."""
+    savepath = path.with_suffix(".zarr")
+    if path.suffix == ".zarr" or savepath.exists():
+        logger.warn("zarr image already exists")
+        store = parse_url(savepath, mode="w").store
+        return zarr.group(store=store)
+
     file = CZISceneFile(path, scene)
     image = np.squeeze(file.asarray())
 
     scale = {"z": file.scale_z_um, "y": file.scale_y_um, "x": file.scale_x_um}
-
-    savepath = path.with_suffix(".zarr")
-    if savepath.exists():
-        logger.warn("zarr image already exists")
-        store = parse_url(savepath, mode="w").store
-        return zarr.group(store=store)
 
     store = parse_url(savepath, mode="w").store
     root = zarr.group(store=store)
