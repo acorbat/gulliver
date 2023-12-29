@@ -7,6 +7,7 @@ from napari_czifile2.io import CZISceneFile
 import numpy as np
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_image, write_labels
+from skimage.exposure import rescale_intensity
 import zarr
 
 
@@ -53,7 +54,7 @@ def get_image(
     }
 
     write_image(
-        image=np.stack([this_image for this_image in image]),
+        image=np.stack([rescale_intensity(this_image) for this_image in image]),
         group=root,
         axes="cyx",
         storage_options=dict(chunks=(1, 2048, 2048)),
