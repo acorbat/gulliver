@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import Dict
 
+import dask
 from napari_czifile2.io import CZISceneFile
 import numpy as np
 from ome_zarr.io import parse_url
@@ -16,7 +17,7 @@ def get_image(
     path: Path, scene: int = 0, remake: bool = False
 ) -> zarr.hierarchy.Group:
     """Gets the selected scene from the CZI File as an array and makes an
-    OME Zarr."""
+    OME Zarr, or loads it if it was already created."""
     file = CZISceneFile(path, scene)
     image = np.squeeze(file.asarray())
 
@@ -30,7 +31,6 @@ def get_image(
 
     store = parse_url(savepath, mode="w").store
     root = zarr.group(store=store)
-    root.attrs["scale"] = scale
     root.attrs["omero"] = {
         "channels": [
             {
@@ -51,14 +51,38 @@ def get_image(
             },
         ]
     }
+
     write_image(
-        image=np.stack(image),
+        image=np.stack([this_image for this_image in image]),
         group=root,
         axes="cyx",
         storage_options=dict(chunks=(1, 2048, 2048)),
-        metadata=root.attrs["scale"],
+        metadata={"scale": scale},
     )
     return root
+
+
+def get_channel_from_zarr(
+    image: zarr.hierarchy.Group, channel: str
+) -> Dict[str, dask.array.core.Array]:
+    """Get's the requested channel with the highest resolution"""
+    channels = [
+        channel["label"] for channel in image.attrs["omero"]["channels"]
+    ]
+    channel_index = channels.index("DAPI")
+    return image["0"][channel_index]
+
+
+def get_dict_image(path: Path) -> Dict[str, dask.array.Array]:
+    """Returns a dask array containing the different channels and highest
+    resolution of an image to be processed"""
+    location = parse_url(path)
+    multiscale = location.root_attrs["multiscales"][0]
+    channels = [
+        channel["label"] for channel in location.root_attrs["omero"]["channels"]
+    ]
+    image = location.load(multiscale["datasets"][0]["path"])
+    return {channel: this_image for channel, this_image in zip(channels, image)}
 
 
 def add_labels(
