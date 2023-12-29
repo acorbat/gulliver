@@ -70,7 +70,7 @@ def get_channel_from_zarr(
     channels = [
         channel["label"] for channel in image.attrs["omero"]["channels"]
     ]
-    channel_index = channels.index("DAPI")
+    channel_index = channels.index(channel)
     return image["0"][channel_index]
 
 
