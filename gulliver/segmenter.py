@@ -100,8 +100,9 @@ def predict_sox9(image: np.ndarray) -> np.ndarray:
     )
     semantic_segmentation = predict(image=image, segmenter=sox9_segmenter)
 
-    semantic_segmentation = binary_opening(semantic_segmentation > 1, disk(3))
-    semantic_segmentation = binary_closing(semantic_segmentation, disk(15))
+    semantic_segmentation = binary_opening(semantic_segmentation > 1, disk(1))
+    semantic_segmentation = binary_closing(semantic_segmentation, disk(4))
+    semantic_segmentation = binary_opening(semantic_segmentation, disk(1))
     return semantic_segmentation
 
 
@@ -123,11 +124,7 @@ def separate_holes_and_debris(
     holes = hole_segmentation == 2
     not_well_stained = hole_segmentation == 3
 
-    not_well_stained = binary_closing(not_well_stained, footprint=disk(10))
-    not_well_stained = remove_small_objects(
-        label(not_well_stained),
-        min_size=200,
-    )
+    not_well_stained = binary_closing(not_well_stained, footprint=disk(3))
     return holes, not_well_stained
 
 
@@ -163,10 +160,11 @@ def find_structures(
     holes, not_well_stained = separate_holes_and_debris(holes)
 
     logging.info("Cleaning Sox9+ cells")
-    sox9_positive[np.logical_or(holes, not_well_stained > 1)] = 0
+    sox9_positive[np.logical_or(holes.astype(bool), not_well_stained > 0)] = 0
 
     logging.info("Labelling Sox9+ cells")
     sox9_positive = label(sox9_positive)
+    sox9_positive = remove_small_objects(sox9_positive, min_size=70)
 
     s9 = segmentations.create_group("sox9_positive")
     s9 = s9.create_dataset("labels", data=sox9_positive)
