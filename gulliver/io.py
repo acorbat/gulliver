@@ -65,7 +65,7 @@ def get_image(
 
 def get_channel_from_zarr(
     image: zarr.hierarchy.Group, channel: str
-) -> Dict[str, dask.array.core.Array]:
+) -> np.ndarray:
     """Get's the requested channel with the highest resolution"""
     channels = [
         channel["label"] for channel in image.attrs["omero"]["channels"]
