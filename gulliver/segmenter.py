@@ -40,6 +40,18 @@ def segment_liver(nuclei_channel: np.ndarray) -> np.ndarray:
     return liver_masks
 
 
+def clean_channel(
+    sox9_channel: np.ndarray, elastin_channel: np.ndarray
+) -> np.ndarray:
+    """Remove one channel from the other to clean blledthrough"""
+    clean_sox9_channel = np.clip(
+        sox9_channel.astype(float) - elastin_channel.astype(float),
+        a_min=0,
+        a_max=np.inf,
+    ).astype("uint16")
+    return clean_sox9_channel
+
+
 def chunk_and_process_2d_array(
     input_array: np.ndarray, chunk_shape: Tuple, processing_function: Callable
 ) -> np.ndarray:
@@ -163,7 +175,12 @@ def find_structures(
     segmentations = zarr.group()
     logging.info("Performing semantic segmentation of Sox9+ cells")
     sox9_positive = chunk_and_process_2d_array(
-        sox9_channel, chunk_shape=chunk_shape, processing_function=predict_sox9
+        clean_channel(
+            sox9_channel=sox9_channel,
+            elastin_channel=elastin_channel,
+        ),
+        chunk_shape=chunk_shape,
+        processing_function=predict_sox9,
     )
 
     logging.info("Performing semantic segmentation of holes and debris")
@@ -188,7 +205,6 @@ def find_structures(
 
     logging.info("Cleaning Sox9+ cells")
     sox9_positive[np.logical_or(holes.astype(bool), not_well_stained > 0)] = 0
-    sox9_positive[elastin_positive] = 0
 
     logging.info("Labelling Sox9+ cells")
     sox9_positive = label(sox9_positive)
