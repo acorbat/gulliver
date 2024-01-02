@@ -110,7 +110,9 @@ def predict_sox9(image: np.ndarray) -> np.ndarray:
     )
     semantic_segmentation = predict(image=image, segmenter=sox9_segmenter)
 
+    semantic_segmentation = binary_opening(semantic_segmentation > 1, disk(1))
     semantic_segmentation = binary_closing(semantic_segmentation, disk(4))
+    semantic_segmentation = binary_opening(semantic_segmentation, disk(1))
     return semantic_segmentation
 
 
