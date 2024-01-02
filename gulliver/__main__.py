@@ -7,7 +7,12 @@ import pyclesperanto_prototype as cle
 from tqdm import tqdm
 
 from .io import get_image, add_labels, get_channel_from_zarr
-from .segmenter import find_structures, segment_liver, clean_segmentations
+from .segmenter import (
+    find_structures,
+    segment_liver,
+    clean_segmentations,
+    add_veins,
+)
 
 from . import __version__
 
@@ -74,7 +79,9 @@ def segment_file(
 
     logger.info("Looking for structures in Sox9 staining")
     segmentations = find_structures(
-        get_channel_from_zarr(image, "Sox9"),
+        sox9_channel=get_channel_from_zarr(image, "Sox9"),
+        gs_channel=get_channel_from_zarr(image, "GS"),
+        elastin_channel=get_channel_from_zarr(image, "elastin"),
         chunk_shape=(chunk_multiplier * 1024, chunk_multiplier * 1024),
     )
 
@@ -86,6 +93,9 @@ def segment_file(
 
     logger.info("Cleaning up segmentations")
     clean_segmentations(segmentations)
+
+    logger.info("Adding vein labeling")
+    add_veins(segmentations)
 
     logger.info("Adding labels to zarr")
     for label_name, label_image in segmentations.items():
@@ -108,13 +118,9 @@ def segment_folder(
         )
         for scene in range(number_of_scenes):
             logger.info(f"Segmenting scene number {scene}")
-            savepath = filepath.with_name(
-                filepath.stem + f"_scene_{scene}.zarr"
-            )
             segment_file(
                 filepath=filepath,
                 scene=scene,
-                savepath=savepath,
                 chunk_multiplier=chunk_multiplier,
             )
 
