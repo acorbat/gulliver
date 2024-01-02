@@ -28,18 +28,15 @@ def segment_liver(nuclei_channel: np.ndarray) -> np.ndarray:
     """Segments liver area from nuclei stained images."""
     if nuclei_channel.ndim > 2:
         nuclei_channel = np.mean(nuclei_channel, axis=0)
-    nuclei_channel = gaussian(nuclei_channel, 20)
+    nuclei_channel = gaussian(nuclei_channel, 10)
     threshold = threshold_otsu(nuclei_channel)
     liver_masks = nuclei_channel > threshold
     liver_masks = binary_opening(
-        liver_masks, footprint=disk(30, decomposition="sequence")
+        liver_masks, footprint=disk(15, decomposition="sequence")
     )
-    liver_masks = binary_erosion(
-        liver_masks, disk(radius=30, decomposition="sequence")
-    )
-    liver_masks = remove_small_holes(liver_masks, area_threshold=10**8)
+    liver_masks = remove_small_holes(liver_masks, area_threshold=10**6)
     liver_masks = label(liver_masks)
-    liver_masks = remove_small_objects(liver_masks, min_size=1000000)
+    liver_masks = remove_small_objects(liver_masks, min_size=40000)
     return liver_masks
 
 
@@ -157,27 +154,45 @@ def predict_elastin_positive(image: np.ndarray) -> np.ndarray:
 
 
 def find_structures(
-    image: np.ndarray, chunk_shape: Tuple = (5 * 1024, 5 * 1024)
+    sox9_channel: np.ndarray,
+    gs_channel: np.ndarray,
+    elastin_channel: np.ndarray,
+    chunk_shape: Tuple = (5 * 1024, 5 * 1024),
 ) -> zarr.Array:
     """Finds bile ducts, holes and other things in the image"""
     segmentations = zarr.group()
     logging.info("Performing semantic segmentation of Sox9+ cells")
     sox9_positive = chunk_and_process_2d_array(
-        image, chunk_shape=chunk_shape, processing_function=predict_sox9
+        sox9_channel, chunk_shape=chunk_shape, processing_function=predict_sox9
     )
 
     logging.info("Performing semantic segmentation of holes and debris")
     holes = chunk_and_process_2d_array(
-        image, chunk_shape=chunk_shape, processing_function=predict_holes
+        sox9_channel, chunk_shape=chunk_shape, processing_function=predict_holes
     )
     holes, not_well_stained = separate_holes_and_debris(holes)
 
+    logging.info("Segmenting GS channel")
+    gs_positive = chunk_and_process_2d_array(
+        gs_channel,
+        chunk_shape=chunk_shape,
+        processing_function=predict_gs_positive,
+    )
+
+    logging.info("Segmenting elastin channel")
+    elastin_positive = chunk_and_process_2d_array(
+        elastin_channel,
+        chunk_shape=chunk_shape,
+        processing_function=predict_elastin_positive,
+    )
+
     logging.info("Cleaning Sox9+ cells")
     sox9_positive[np.logical_or(holes.astype(bool), not_well_stained > 0)] = 0
+    sox9_positive[elastin_positive] = 0
 
     logging.info("Labelling Sox9+ cells")
     sox9_positive = label(sox9_positive)
-    # sox9_positive = remove_small_objects(sox9_positive, min_size=70)
+    sox9_positive = remove_small_objects(sox9_positive, min_size=70)
 
     s9 = segmentations.create_group("sox9_positive")
     s9 = s9.create_dataset("labels", data=sox9_positive)
@@ -185,6 +200,10 @@ def find_structures(
     h = h.create_dataset("labels", data=holes)
     n = segmentations.create_group("not_well_stained")
     n = n.create_dataset("labels", data=not_well_stained)
+    gs = segmentations.create_group("gs_positive")
+    gs = gs.create_dataset("labels", data=gs_positive)
+    el = segmentations.create_group("elastin_positive")
+    el = el.create_dataset("labels", data=elastin_positive)
 
     return segmentations
 
@@ -192,6 +211,7 @@ def find_structures(
 def clean_segmentations(segmentations: zarr.hierarchy.Group) -> None:
     """Uses liver segmentation to remove objects outside the liver inside the
     segmentations object"""
+    # First remove signal from outside livers
     liver_mask = segmentations["liver"]["labels"][:] < 1
 
     for group in segmentations.groups():
@@ -247,15 +267,13 @@ def find_veins(
 ) -> Tuple[np.ndarray]:
     """First finds regions corresponding to portal triads, portal veins or
     central veins and then classifies into central vein regions considering
-    GS staining and portal regions considering elastin staining.
+    GS positive region and portal regions considering elastin positive staining.
 
     Returns a tuple of arrays: (portal veins, central veins)"""
     regions = find_vessel_regions(holes, not_well_stained)
     border_regions = find_borders(regions)
-    gs_prediction = predict_gs_positive(gs_positive)
-    elastin_prediction = predict_elastin_positive(elastin_positive)
-    gs_table = relate_structures(border_regions, gs_prediction)
-    elastin_table = relate_structures(border_regions, elastin_prediction)
+    gs_table = relate_structures(border_regions, gs_positive)
+    elastin_table = relate_structures(border_regions, elastin_positive)
     full_table = pd.merge(
         gs_table, elastin_table, on="label", suffixes=["_gs", "_elastin"]
     )

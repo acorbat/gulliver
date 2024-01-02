@@ -3,12 +3,15 @@ import logging
 from pathlib import Path
 
 from napari_czifile2.io import CZISceneFile
+import pyclesperanto_prototype as cle
 from tqdm import tqdm
 
-from .io import get_image, save_img
+from .io import get_image, add_labels, get_channel_from_zarr
 from .segmenter import find_structures, segment_liver, clean_segmentations
 
 from . import __version__
+
+cle.select_device("RTX")
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +66,6 @@ def main():
 def segment_file(
     filepath: Path,
     scene: int,
-    savepath: Path | None = None,
     chunk_multiplier: int = 7,
 ) -> None:
     """Segments an image file and saves it into ome-zarr format."""
@@ -72,21 +74,22 @@ def segment_file(
 
     logger.info("Looking for structures in Sox9 staining")
     segmentations = find_structures(
-        image["Sox9"]["image"],
+        get_channel_from_zarr(image, "Sox9"),
         chunk_shape=(chunk_multiplier * 1024, chunk_multiplier * 1024),
     )
 
     logger.info("Looking for liver pieces")
     liver = segmentations.create_group("liver")
-    liver.create_dataset("labels", data=segment_liver(image["DAPI"]["image"]))
+    liver.create_dataset(
+        "labels", data=segment_liver(get_channel_from_zarr(image, "DAPI"))
+    )
 
     logger.info("Cleaning up segmentations")
     clean_segmentations(segmentations)
 
-    if savepath is None:
-        savepath = filepath.with_name(filepath.stem + f"_scene_{scene}.zarr")
-    logger.info("Saving image at %s" % str(savepath))
-    save_img(savepath, image, segmentations)
+    logger.info("Adding labels to zarr")
+    for label_name, label_image in segmentations.items():
+        add_labels(image, label_image["labels"][:], label_name)
 
 
 def segment_folder(
