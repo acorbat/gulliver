@@ -4,6 +4,7 @@ from typing import Callable, Tuple, List
 
 from apoc import PixelClassifier
 import numpy as np
+import pandas as pd
 import pyclesperanto_prototype as cle
 from skimage.filters import gaussian, threshold_otsu
 from skimage.morphology import (
@@ -136,10 +137,22 @@ def predict_gs_positive(image: np.ndarray) -> np.ndarray:
     )
     semantic_segmentation = predict(image=image, segmenter=gs_segmenter)
 
-    semantic_segmentation = binary_closing(semantic_segmentation > 1, disk(10))
-    semantic_segmentation = remove_small_objects(
-        label(semantic_segmentation), min_size=9000
+    semantic_segmentation = binary_opening(semantic_segmentation > 1, disk(5))
+    return semantic_segmentation
+
+
+def predict_elastin_positive(image: np.ndarray) -> np.ndarray:
+    """Performs semantic segmentation for elastin positive structures on the
+    image."""
+    elastin_segmenter = PixelClassifier(
+        opencl_filename=os.path.join(
+            MODULE_DIRECTORY,
+            "ElastinPixelClassifier.cl",
+        )
     )
+    semantic_segmentation = predict(image=image, segmenter=elastin_segmenter)
+
+    semantic_segmentation = binary_closing(semantic_segmentation > 1, disk(5))
     return semantic_segmentation
 
 
@@ -164,7 +177,7 @@ def find_structures(
 
     logging.info("Labelling Sox9+ cells")
     sox9_positive = label(sox9_positive)
-    sox9_positive = remove_small_objects(sox9_positive, min_size=70)
+    # sox9_positive = remove_small_objects(sox9_positive, min_size=70)
 
     s9 = segmentations.create_group("sox9_positive")
     s9 = s9.create_dataset("labels", data=sox9_positive)
@@ -193,37 +206,74 @@ def find_vessel_regions(
 ) -> np.ndarray:
     """Finds big regions that could be portal triads, portal veins or central
     veins. It discards huge regions that could be not well stained regions."""
-    veins = remove_small_objects(label(holes), min_size=1000)
-    mesenchyma = remove_small_objects(label(not_well_stained), min_size=3000)
+    veins = remove_small_objects(label(holes), min_size=250)
+    mesenchyma = remove_small_objects(label(not_well_stained), min_size=750)
     structures = np.logical_or(veins > 0, mesenchyma > 0)
     structures = np.logical_xor(
         remove_small_objects(label(structures), min_size=1000000), structures
     )
-    structures = label(binary_dilation(structures, disk(20)))
+    structures = label(binary_dilation(structures, disk(15)))
     return structures
 
 
-def find_borders(label: np.ndarray, size: int = 40):
+def find_borders(label: np.ndarray, size: int = 20):
     """Creates a labeled mask of the surrounding region of each label."""
-    borders = cle.dilate_labels(label, radius=size) - label
+    borders = cle.dilate_labels(label, radius=size) - cle.erode_labels(
+        label, radius=15
+    )
     return borders.get().astype(int)
 
 
-def find_portal_veins(
-    holes: np.ndarray, not_well_stained: np.ndarray, gs_positive: np.ndarray
-) -> np.ndarray:
+def classify_vein(gs_intensity: float, elastin_intensity: float) -> int:
+    """Classifies veins according to the ratio of pixels where GS signal and
+    elastin signal in borders is positive.
+
+    1 -> Portal vein
+    2 -> Central vein
+    3 -> Unclassified"""
+    if gs_intensity > 0.18:
+        return 2
+    if elastin_intensity > 0.05:
+        return 1
+    else:
+        return 3
+
+
+def find_veins(
+    holes: np.ndarray,
+    not_well_stained: np.ndarray,
+    gs_positive: np.ndarray,
+    elastin_positive: np.ndarray,
+) -> Tuple[np.ndarray]:
     """First finds regions corresponding to portal triads, portal veins or
-    central veins and then discards suspected central vein regions considering
-    GS staining."""
+    central veins and then classifies into central vein regions considering
+    GS staining and portal regions considering elastin staining.
+
+    Returns a tuple of arrays: (portal veins, central veins)"""
     regions = find_vessel_regions(holes, not_well_stained)
     border_regions = find_borders(regions)
-    relations_table = relate_structures(border_regions, gs_positive)
-    relations_table["keep"] = [
-        label if mean < 0.2 else 0
-        for label, mean in relations_table[["label", "intensity_mean"]].values
-    ]
-    regions = relabel_image(regions, list(relations_table["keep"].values))
-    return regions
+    gs_prediction = predict_gs_positive(gs_positive)
+    elastin_prediction = predict_elastin_positive(elastin_positive)
+    gs_table = relate_structures(border_regions, gs_prediction)
+    elastin_table = relate_structures(border_regions, elastin_prediction)
+    full_table = pd.merge(
+        gs_table, elastin_table, on="label", suffixes=["_gs", "_elastin"]
+    )
+    full_table["vein"] = full_table.apply(
+        lambda x: classify_vein(
+            x["intensity_mean_gs"], x["intensity_mean_elastin"]
+        ),
+        axis=1,
+    )
+
+    # To do: several steps here are probably innefficient
+    veins = relabel_image(regions, list(full_table["vein"].values))
+    central_veins = regions.copy()
+    central_veins[veins != 2] = 0
+    portal_veins = regions.copy()
+    portal_veins[veins != 1] = 0
+
+    return portal_veins, central_veins
 
 
 def find_portal_regions(portal_veins: np.ndarray, radius: int) -> np.ndarray:
