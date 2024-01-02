@@ -275,21 +275,23 @@ def classify_vein(gs_intensity: float, elastin_intensity: float) -> int:
         return 3
 
 
-def find_veins(
-    holes: np.ndarray,
-    not_well_stained: np.ndarray,
-    gs_positive: np.ndarray,
-    elastin_positive: np.ndarray,
-) -> Tuple[np.ndarray]:
+def add_veins(segmentations: zarr.hierarchy.Group) -> None:
     """First finds regions corresponding to portal triads, portal veins or
     central veins and then classifies into central vein regions considering
     GS positive region and portal regions considering elastin positive staining.
 
     Returns a tuple of arrays: (portal veins, central veins)"""
-    regions = find_vessel_regions(holes, not_well_stained)
+    regions = find_vessel_regions(
+        segmentations["holes"]["labels"],
+        segmentations["not_well_stained"]["labels"],
+    )
     border_regions = find_borders(regions)
-    gs_table = relate_structures(border_regions, gs_positive)
-    elastin_table = relate_structures(border_regions, elastin_positive)
+    gs_table = relate_structures(
+        border_regions, segmentations["gs_positive"]["labels"]
+    )
+    elastin_table = relate_structures(
+        border_regions, segmentations["elastin_positive"]["labels"]
+    )
     full_table = pd.merge(
         gs_table, elastin_table, on="label", suffixes=["_gs", "_elastin"]
     )
@@ -302,12 +304,13 @@ def find_veins(
 
     # To do: several steps here are probably innefficient
     veins = relabel_image(regions, list(full_table["vein"].values))
-    central_veins = regions.copy()
-    central_veins[veins != 2] = 0
-    portal_veins = regions.copy()
-    portal_veins[veins != 1] = 0
+    cv = segmentations.create_group("central_veins")
+    cv = cv.create_dataset("labels", data=regions.copy())
+    cv.set_mask_selection(veins != 2, 0)
 
-    return portal_veins, central_veins
+    pv = segmentations.create_group("portal_veins")
+    pv = pv.create_dataset("labels", data=regions.copy())
+    pv.set_mask_selection(veins != 1, 0)
 
 
 def find_portal_regions(portal_veins: np.ndarray, radius: int) -> np.ndarray:
