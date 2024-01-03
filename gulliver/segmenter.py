@@ -52,6 +52,22 @@ def clean_channel(
     return clean_sox9_channel
 
 
+def make_lumen_channel(
+    dapi_channel: np.ndarray,
+    elastin_channel: np.ndarray,
+    gs_channel: np.ndarray,
+) -> np.ndarray:
+    """Combines DAPI, elastin and GS channels to highlight lumina"""
+    lumen_channel = (
+        dapi_channel.astype(float)
+        - elastin_channel.astype(float)
+        + gs_channel.astype(float)
+    )
+
+    lumen_channel = np.clip(lumen_channel, a_max=2**16, a_min=0)
+    return lumen_channel
+
+
 def chunk_and_process_2d_array(
     input_array: np.ndarray, chunk_shape: Tuple, processing_function: Callable
 ) -> np.ndarray:
@@ -138,6 +154,15 @@ def separate_holes_and_debris(
     return holes, not_well_stained
 
 
+def clean_lumen(lumen_prediction: np.ndarray) -> np.ndarray:
+    """Morphological operations to clean up the lumina"""
+    polished_prediction = binary_dilation(lumen_prediction > 1, disk(2))
+    polished_prediction = remove_small_holes(
+        label(polished_prediction), area_threshold=5000
+    )
+    return polished_prediction
+
+
 def predict_gs_positive(image: np.ndarray) -> np.ndarray:
     """Performs semantic segmentation for GS positive structures on the
     image."""
@@ -169,6 +194,7 @@ def find_structures(
     sox9_channel: np.ndarray,
     gs_channel: np.ndarray,
     elastin_channel: np.ndarray,
+    dapi_channel: np.ndarray,
     chunk_shape: Tuple = (5 * 1024, 5 * 1024),
 ) -> zarr.Array:
     """Finds bile ducts, holes and other things in the image"""
@@ -184,10 +210,17 @@ def find_structures(
     )
 
     logging.info("Performing semantic segmentation of holes and debris")
-    holes = chunk_and_process_2d_array(
-        sox9_channel, chunk_shape=chunk_shape, processing_function=predict_holes
+    lumen_channel = make_lumen_channel(
+        dapi_channel=dapi_channel,
+        elastin_channel=elastin_channel,
+        gs_channel=gs_channel,
     )
-    holes, not_well_stained = separate_holes_and_debris(holes)
+    holes = chunk_and_process_2d_array(
+        lumen_channel,
+        chunk_shape=chunk_shape,
+        processing_function=predict_holes,
+    )
+    lumen = clean_lumen(holes)
 
     logging.info("Segmenting GS channel")
     gs_positive = chunk_and_process_2d_array(
@@ -204,18 +237,16 @@ def find_structures(
     )
 
     logging.info("Cleaning Sox9+ cells")
-    sox9_positive[np.logical_or(holes.astype(bool), not_well_stained > 0)] = 0
+    sox9_positive[lumen > 0] = 0
 
     logging.info("Labelling Sox9+ cells")
     sox9_positive = label(sox9_positive)
-    sox9_positive = remove_small_objects(sox9_positive, min_size=70)
+    sox9_positive = remove_small_objects(sox9_positive, min_size=50)
 
     s9 = segmentations.create_group("sox9_positive")
     s9 = s9.create_dataset("labels", data=sox9_positive)
-    h = segmentations.create_group("holes")
-    h = h.create_dataset("labels", data=holes)
-    n = segmentations.create_group("not_well_stained")
-    n = n.create_dataset("labels", data=not_well_stained)
+    l = segmentations.create_group("lumen")
+    l = l.create_dataset("labels", data=lumen)
     gs = segmentations.create_group("gs_positive")
     gs = gs.create_dataset("labels", data=gs_positive)
     el = segmentations.create_group("elastin_positive")
