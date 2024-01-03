@@ -65,6 +65,7 @@ def find_distances(
     labels: np.ndarray,
     relative_to_mask: np.ndarray,
     suffix: str | None = None,
+    scale: float | None = None,
 ) -> pd.DataFrame:
     """Calculates distance estimations between each labeled object and the
     mask provided."""
@@ -78,6 +79,7 @@ def find_distances(
         },
         inplace=True,
     )
+
     if suffix is not None:
         table.rename(
             columns={
@@ -87,4 +89,9 @@ def find_distances(
             },
             inplace=True,
         )
+
+    if scale is not None:
+        for column in table.columns:
+            if "distance" in column:
+                table[column] = table[column] * scale
     return table
