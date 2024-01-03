@@ -74,6 +74,14 @@ def get_channel_from_zarr(
     return image["0"][channel_index]
 
 
+def get_labels_from_zarr(
+    image: zarr.hierarchy.Group,
+    label_name: str,
+) -> zarr.core.Array:
+    """Get's the requested labeled image with the highest resolution"""
+    return image["labels"][label_name]["0"]
+
+
 def get_dict_image(path: Path) -> Dict[str, dask.array.Array]:
     """Returns a dask array containing the different channels and highest
     resolution of an image to be processed"""
