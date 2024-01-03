@@ -77,6 +77,10 @@ def segment_file(
     logger.info("Loading image %s" % str(filepath))
     image = get_image(filepath, scene)
 
+    if "labels" in list(image.group_keys()):
+        logger.info("Already contains a labels and cannot overwrite")
+        return
+
     logger.info("Looking for structures in Sox9 staining")
     segmentations = find_structures(
         sox9_channel=get_channel_from_zarr(image, "Sox9"),
