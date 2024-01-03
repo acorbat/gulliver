@@ -11,7 +11,7 @@ from skimage.morphology import (
     binary_opening,
     binary_closing,
     binary_dilation,
-    binary_erosion,
+    erosion,
     disk,
     label,
     remove_small_objects,
@@ -56,12 +56,14 @@ def make_lumen_channel(
     dapi_channel: np.ndarray,
     elastin_channel: np.ndarray,
     gs_channel: np.ndarray,
+    sox9_channel: np.ndarray,
 ) -> np.ndarray:
     """Combines DAPI, elastin and GS channels to highlight lumina"""
     lumen_channel = (
         dapi_channel.astype(float)
         - elastin_channel.astype(float)
         + gs_channel.astype(float)
+        + sox9_channel.astype(float)
     )
 
     lumen_channel = np.clip(lumen_channel, a_max=2**16, a_min=0)
@@ -214,6 +216,7 @@ def find_structures(
         dapi_channel=dapi_channel,
         elastin_channel=elastin_channel,
         gs_channel=gs_channel,
+        sox9_channel=sox9_channel,
     )
     holes = chunk_and_process_2d_array(
         lumen_channel,
@@ -269,25 +272,28 @@ def clean_segmentations(segmentations: zarr.hierarchy.Group) -> None:
 
 
 def find_vessel_regions(
-    holes: np.ndarray, not_well_stained: np.ndarray
+    veins: np.ndarray, elastin_positive: np.ndarray
 ) -> np.ndarray:
     """Finds big regions that could be portal triads, portal veins or central
-    veins. It discards huge regions that could be not well stained regions."""
-    veins = remove_small_objects(label(holes), min_size=250)
-    mesenchyma = remove_small_objects(label(not_well_stained), min_size=750)
-    structures = np.logical_or(veins > 0, mesenchyma > 0)
-    structures = np.logical_xor(
-        remove_small_objects(label(structures), min_size=1000000), structures
-    )
-    structures = label(binary_dilation(structures, disk(15)))
-    return structures
+    veins. It discards huge regions that could be not well stained regions. It
+    uses the elastin channel to further clean segmentation"""
+    veins = binary_dilation(veins, disk(5, decomposition="sequence"))
+    veins = label(veins)
+    veins = remove_small_objects(veins, min_size=600)
+    veins = np.logical_xor(remove_small_objects(veins, min_size=100000), veins)
+    veins = label(veins)
+    veins[elastin_positive] = 0
+    veins = erosion(veins, disk(7))
+    veins = remove_small_holes(veins, area_threshold=1000)
+    veins = remove_small_objects(veins, min_size=600)
+    veins = binary_closing(veins, disk(10, decomposition="sequence"))
+    veins = label(veins)
+    return veins
 
 
-def find_borders(label: np.ndarray, size: int = 20):
+def find_borders(labels: np.ndarray, size: int = 20):
     """Creates a labeled mask of the surrounding region of each label."""
-    borders = cle.dilate_labels(label, radius=size) - cle.erode_labels(
-        label, radius=15
-    )
+    borders = cle.dilate_labels(labels, radius=size) - labels
     return borders.get().astype(int)
 
 
@@ -313,8 +319,8 @@ def add_veins(segmentations: zarr.hierarchy.Group) -> None:
 
     Returns a tuple of arrays: (portal veins, central veins)"""
     regions = find_vessel_regions(
-        segmentations["holes"]["labels"],
-        segmentations["not_well_stained"]["labels"],
+        segmentations["lumen"]["labels"],
+        segmentations["elastin_positive"]["labels"],
     )
     border_regions = find_borders(regions)
     gs_table = relate_structures(
