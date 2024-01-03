@@ -115,18 +115,26 @@ def segment_folder(
 
     logger.info(f"{len(filepaths)} images were found.")
     for filepath in tqdm(filepaths):
-        number_of_scenes = CZISceneFile(filepath, 0).get_num_scenes(filepath)
-
-        logger.info(
-            f"Segmenting {number_of_scenes} scenes" + "from image {filepath}"
+        scene = 0
+        logger.info(f"Segmenting scene number {scene}")
+        segment_file(
+            filepath=filepath,
+            scene=scene,
+            chunk_multiplier=chunk_multiplier,
         )
-        for scene in range(number_of_scenes):
-            logger.info(f"Segmenting scene number {scene}")
-            segment_file(
-                filepath=filepath,
-                scene=scene,
-                chunk_multiplier=chunk_multiplier,
-            )
+        ### This code is for scenes
+        # number_of_scenes = CZISceneFile(filepath, 0).get_num_scenes(filepath)
+
+        # logger.info(
+        #     f"Segmenting {number_of_scenes} scenes" + "from image {filepath}"
+        # )
+        # for scene in range(number_of_scenes):
+        #     logger.info(f"Segmenting scene number {scene}")
+        #     segment_file(
+        #         filepath=filepath,
+        #         scene=scene,
+        #         chunk_multiplier=chunk_multiplier,
+        #     )
 
 
 if __name__ == "__main__":
