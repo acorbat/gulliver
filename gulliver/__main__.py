@@ -86,6 +86,7 @@ def segment_file(
         sox9_channel=get_channel_from_zarr(image, "Sox9"),
         gs_channel=get_channel_from_zarr(image, "GS"),
         elastin_channel=get_channel_from_zarr(image, "elastin"),
+        dapi_channel=get_channel_from_zarr(image, "DAPI"),
         chunk_shape=(chunk_multiplier * 1024, chunk_multiplier * 1024),
     )
 
