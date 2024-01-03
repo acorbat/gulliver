@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Callable, Tuple, List
+from typing import Callable, Tuple, List, Iterable
 
 from apoc import PixelClassifier
 import numpy as np
@@ -110,6 +110,16 @@ def relabel_image(
     )
     predicted_image = predicted_image.astype(int)
     return predicted_image
+
+
+def relabel_by_values(
+    label_image: np.ndarray, labels: Iterable, values: Iterable
+) -> np.ndarray:
+    """Relabels the labels of a labeled image with the values given. Missing
+    labels are replaced by 0."""
+    new_labels = np.zeros(np.max(labels))
+    new_labels[labels - 1] = values
+    return relabel_image(label_image, list(new_labels))
 
 
 def predict(image: np.ndarray, segmenter: PixelClassifier) -> np.ndarray:
