@@ -66,7 +66,7 @@ def get_image(
 def get_channel_from_zarr(
     image: zarr.hierarchy.Group, channel: str
 ) -> np.ndarray:
-    """Get's the requested channel with the highest resolution"""
+    """Gets the requested channel with the highest resolution"""
     channels = [
         channel["label"] for channel in image.attrs["omero"]["channels"]
     ]
@@ -78,8 +78,13 @@ def get_labels_from_zarr(
     image: zarr.hierarchy.Group,
     label_name: str,
 ) -> zarr.core.Array:
-    """Get's the requested labeled image with the highest resolution"""
+    """Gets the requested labeled image with the highest resolution"""
     return image["labels"][label_name]["0"]
+
+
+def get_scale_from_zarr(image: zarr.hierarchy.Group) -> Dict:
+    """Gets scale dictionary from zarr metadata"""
+    return image.attrs["multiscales"][0]["metadata"]["scale"]
 
 
 def get_dict_image(path: Path) -> Dict[str, dask.array.Array]:
