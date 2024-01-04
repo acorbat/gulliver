@@ -329,9 +329,8 @@ def classify_vein(gs_intensity: float, elastin_intensity: float) -> int:
 def add_veins(segmentations: zarr.hierarchy.Group) -> None:
     """First finds regions corresponding to portal triads, portal veins or
     central veins and then classifies into central vein regions considering
-    GS positive region and portal regions considering elastin positive staining.
-
-    Returns a tuple of arrays: (portal veins, central veins)"""
+    GS positive region and portal regions considering elastin positive
+    staining."""
     regions = find_vessel_regions(
         segmentations["lumen"]["labels"],
         segmentations["elastin_positive"]["labels"],
