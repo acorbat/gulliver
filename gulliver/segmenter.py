@@ -9,6 +9,7 @@ import pyclesperanto_prototype as cle
 from skimage.filters import gaussian, threshold_otsu
 from skimage.morphology import (
     binary_opening,
+    binary_erosion,
     binary_closing,
     binary_dilation,
     erosion,
@@ -35,6 +36,7 @@ def segment_liver(nuclei_channel: np.ndarray) -> np.ndarray:
         liver_masks, footprint=disk(15, decomposition="sequence")
     )
     liver_masks = remove_small_holes(liver_masks, area_threshold=10**6)
+    liver_masks = binary_erosion(liver_masks, disk(5, decomposition="sequence"))
     liver_masks = label(liver_masks)
     liver_masks = remove_small_objects(liver_masks, min_size=40000)
     return liver_masks
