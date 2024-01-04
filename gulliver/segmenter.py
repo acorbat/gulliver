@@ -367,4 +367,4 @@ def add_veins(segmentations: zarr.hierarchy.Group) -> None:
 def find_portal_regions(portal_veins: np.ndarray, radius: int) -> np.ndarray:
     """Exapnds the portal veins to define a region to be analyzed"""
     regions = cle.dilate_labels(portal_veins, radius=radius)
-    return regions
+    return regions.get()
