@@ -57,12 +57,12 @@ def get_properties(
     return pd.DataFrame.from_dict(properties)
 
 
-def get_full_properties(
+def get_sox9_properties(
     sox9_positive: np.ndarray,
     lumen: np.ndarray,
     scale: float,
     annotation: np.ndarray | None = None,
-):
+) -> pd.DataFrame:
     """Builds the table with all Sox9+ descriptors, and distance to lumen. Can
     take an annotation image to add annotated information."""
     properties = get_properties(
@@ -101,6 +101,21 @@ def relate_structures(
         ),
     )
     return pd.DataFrame.from_dict(properties)
+
+
+def get_vein_properties(
+    vein: np.ndarray,
+    other_vein: np.ndarray,
+    scale: float,
+) -> pd.DataFrame:
+    """Get a table with the properties describing all veins in a labeled image."""
+    properties = get_properties(vein, scale=scale)
+    properties = properties[["label", "area", "eccentricity"]]
+    properties = properties.merge(
+        find_distances(labels=vein, relative_to_mask=other_vein, scale=scale),
+        on="label",
+    )
+    return properties.set_index("label", verify_integrity=True)
 
 
 def find_distances(
