@@ -361,9 +361,3 @@ def add_veins(segmentations: zarr.hierarchy.Group) -> None:
     pv = segmentations.create_group("portal_veins")
     pv = pv.create_dataset("labels", data=regions.copy())
     pv.set_mask_selection(veins != 1, 0)
-
-
-def find_portal_regions(portal_veins: np.ndarray, radius: int) -> np.ndarray:
-    """Exapnds the portal veins to define a region to be analyzed"""
-    regions = cle.dilate_labels(portal_veins, radius=radius)
-    return regions.get()

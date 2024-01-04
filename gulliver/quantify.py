@@ -1,7 +1,13 @@
 import numpy as np
 import pandas as pd
+import pyclesperanto_prototype as cle
 from scipy.ndimage import distance_transform_edt
 from skimage.measure import regionprops_table
+
+from .classifier import (
+    predict_bile_duct_classes_from_table,
+    parse_bile_duct_classes,
+)
 
 
 def get_properties(
@@ -108,7 +114,8 @@ def get_vein_properties(
     other_vein: np.ndarray,
     scale: float,
 ) -> pd.DataFrame:
-    """Get a table with the properties describing all veins in a labeled image."""
+    """Get a table with the properties describing all veins in a labeled
+    image."""
     properties = get_properties(vein, scale=scale)
     properties = properties[["label", "area", "eccentricity"]]
     properties = properties.merge(
@@ -152,3 +159,42 @@ def find_distances(
             if "distance" in column:
                 table[column] = table[column] * scale
     return table
+
+
+def find_portal_regions(portal_veins: np.ndarray, radius: int) -> np.ndarray:
+    """Exapnds the portal veins to define a region to be analyzed"""
+    regions = cle.dilate_labels(portal_veins, radius=radius)
+    return regions.get()
+
+
+def get_portal_region_description(
+    sox9_positive: np.ndarray,
+    lumen: np.ndarray,
+    portal_veins: np.ndarray,
+    scale: float,
+):
+    """Generates a table describing all the Sox9+ structures, to which class and
+    portal vein they correspond to."""
+    properties = get_sox9_properties(
+        sox9_positive=sox9_positive, lumen=lumen, scale=scale
+    )
+    properties["class"] = predict_bile_duct_classes_from_table(properties)
+
+    portal_regions = find_portal_regions(portal_veins, 50)
+    portal_dependency = relate_structures(
+        labels=sox9_positive, related_image=portal_regions
+    )
+    properties = properties.merge(
+        portal_dependency[["label", "intensity_max"]].rename(
+            columns={"intensity_max": "portal_vein"}
+        ),
+        on="label",
+    )
+
+    properties["class"] = properties["class"].apply(parse_bile_duct_classes)
+    properties = properties.set_index(
+        "label", verify_integrity=True
+    ).sort_values("portal_vein", ascending=False)[
+        ["area", "class", "portal_vein"]
+    ]
+    return properties
