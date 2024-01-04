@@ -44,3 +44,15 @@ def predict_bile_duct_classes_from_table(
 
     prediction = classifier.predict(properties[properties_for_classification])
     return prediction
+
+
+def parse_bile_duct_classes(class_number: int) -> str:
+    """Parses bile duct class number into class name"""
+    class_dictionary = {
+        1: "Well Formed",
+        2: "Functional",
+        3: "Open Circle",
+        4: "Cluster",
+        5: "Single Cell",
+    }
+    return class_dictionary[class_number]
