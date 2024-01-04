@@ -5,33 +5,75 @@ from skimage.measure import regionprops_table
 
 
 def get_properties(
-    labels: np.ndarray, annotation: np.ndarray | None = None
+    labels: np.ndarray,
+    scale: float | None = None,
+    annotation: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """Generates a properties table including the annotated values from a
     labeled image."""
+    properties_list = [
+        "area",
+        "area_convex",
+        "area_filled",
+        "axis_major_length",
+        "axis_minor_length",
+        "bbox",
+        "eccentricity",
+        "euler_number",
+        "extent",
+        "feret_diameter_max",
+        "label",
+        "moments_hu",
+        "perimeter",
+        "solidity",
+    ]
+    if annotation is not None:
+        properties_list += ["intensity_max", "intensity_min", "intensity_mean"]
+
     properties = regionprops_table(
         labels,
         intensity_image=annotation,
-        properties=(
+        properties=properties_list,
+    )
+
+    if scale is not None:
+        area_properties = [
             "area",
             "area_convex",
             "area_filled",
+        ]
+        for column in area_properties:
+            properties[column] = properties[column] * scale * scale
+
+        distance_properties = [
+            "perimeter",
             "axis_major_length",
             "axis_minor_length",
-            "bbox",
-            "eccentricity",
-            "euler_number",
-            "extent",
             "feret_diameter_max",
-            "intensity_max",
-            "intensity_min",
-            "label",
-            "moments_hu",
-            "perimeter",
-            "solidity",
-        ),
-    )
+        ]
+        for column in distance_properties:
+            properties[column] = properties[column] * scale
+
     return pd.DataFrame.from_dict(properties)
+
+
+def get_full_properties(
+    sox9_positive: np.ndarray,
+    lumen: np.ndarray,
+    scale: float,
+    annotation: np.ndarray | None = None,
+):
+    """Builds the table with all Sox9+ descriptors, and distance to lumen. Can
+    take an annotation image to add annotated information."""
+    properties = get_properties(
+        sox9_positive, scale=scale, annotation=annotation
+    )
+    lumen_distance_table = find_distances(
+        sox9_positive, lumen > 0, suffix="lumen", scale=scale
+    )
+    properties.set_index("label", verify_integrity=True, inplace=True)
+    properties = properties.join(lumen_distance_table.set_index("label"))
+    return properties
 
 
 def relate_structures(

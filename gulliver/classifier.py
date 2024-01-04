@@ -20,5 +20,27 @@ def predict_bile_duct_classes_from_table(
         "Sox9ObjectClassifier.model.cl",
     )
     classifier = apoc.TableRowClassifier(cl_filename)
-    prediction = classifier.predict(properties)
+
+    properties_for_classification = [
+        "area",
+        "area_convex",
+        "area_filled",
+        "axis_major_length",
+        "axis_minor_length",
+        "eccentricity",
+        "euler_number",
+        "extent",
+        "feret_diameter_max",
+        "perimeter",
+        "solidity",
+        "lumen_distance_max",
+        "lumen_distance_min",
+        "lumen_distance_mean",
+    ]
+
+    properties_for_classification += [
+        "moments_hu-%s" % str(num) for num in range(7)
+    ]
+
+    prediction = classifier.predict(properties[properties_for_classification])
     return prediction
