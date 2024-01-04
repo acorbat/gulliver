@@ -1,12 +1,20 @@
 from argparse import ArgumentParser
 import logging
 from pathlib import Path
+from typing import Tuple
 
 from napari_czifile2.io import CZISceneFile
+import pandas as pd
 import pyclesperanto_prototype as cle
 from tqdm import tqdm
 
-from .io import get_image, add_labels, get_channel_from_zarr
+from .quantify import get_vein_properties, get_portal_region_description
+from .io import (
+    get_image,
+    add_labels,
+    get_channel_from_zarr,
+    get_labels_from_zarr,
+)
 from .segmenter import (
     find_structures,
     segment_liver,
@@ -65,7 +73,7 @@ def main():
                 chunk_multiplier=args.chunk_multiplier,
             )
     elif args.command == "quantify":
-        raise NotImplementedError("Not implemented yet")
+        quantify_folder(folderpath=args.path)
 
 
 def segment_file(
@@ -136,6 +144,67 @@ def segment_folder(
         #         scene=scene,
         #         chunk_multiplier=chunk_multiplier,
         #     )
+
+
+def quantify_file(path: Path) -> Tuple[pd.DataFrame]:
+    """Quantifies portal regions, portal veins and central veins in a single
+    file and returns all three tables"""
+    image = get_image(path, 0)
+    x_scale = image.attrs["multiscales"][0]["metadata"]["scale"]["x"]
+
+    sox9_positive = get_labels_from_zarr(image, "sox9_positive")
+    lumen = get_labels_from_zarr(image, "lumen")
+    portal_veins = get_labels_from_zarr(image, "portal_veins")
+    central_veins = get_labels_from_zarr(image, "central_veins")
+
+    logger.info("Quantifying Portal Vein properties")
+    portal_vein_table = get_vein_properties(
+        vein=portal_veins, other_vein=central_veins[:] > 1, scale=x_scale
+    )
+    logger.info("Quantifying Central Vein properties")
+    central_vein_table = get_vein_properties(
+        vein=central_veins, other_vein=portal_veins[:] > 1, scale=x_scale
+    )
+    logger.info("Quantifying Portal Region properties")
+    portal_region_table = get_portal_region_description(
+        sox9_positive=sox9_positive,
+        lumen=lumen[:],
+        portal_veins=portal_veins[:],
+        scale=x_scale,
+    )
+    return portal_region_table, portal_vein_table, central_vein_table
+
+
+def quantify_folder(folderpath: Path) -> None:
+    """Quantifies every zarr file ina folder and adds the result to different
+    tabs in three Excel files"""
+    filepaths = list(folderpath.rglob("*.zarr"))
+
+    logger.info(f"{len(filepaths)} images were found.")
+    with pd.ExcelWriter(
+        folderpath / "portal_regions.xlsx"
+    ) as portal_region_writer, pd.ExcelWriter(
+        folderpath / "portal_veins.xlsx"
+    ) as portal_vein_writer, pd.ExcelWriter(
+        folderpath / "central_veins.xlsx"
+    ) as central_vein_writer:
+        for filepath in tqdm(filepaths):
+            logger.info(f"Quantifying file {filepath.stem}")
+            (
+                portal_region_table,
+                portal_vein_table,
+                central_vein_table,
+            ) = quantify_file(path=filepath)
+
+            portal_region_table.to_excel(
+                portal_region_writer, sheet_name=filepath.stem
+            )
+            portal_vein_table.to_excel(
+                portal_vein_writer, sheet_name=filepath.stem
+            )
+            central_vein_table.to_excel(
+                central_vein_writer, sheet_name=filepath.stem
+            )
 
 
 if __name__ == "__main__":

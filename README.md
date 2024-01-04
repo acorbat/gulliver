@@ -34,6 +34,23 @@ gulliver segment path/to/folder
 Another optional parameters is ```--chunk-multiplier``` which will select how big is the chunk to be sent to GPU in number of (1024, 1024) chunks. The default is 7 so $(7*1024, 7*1024)$ chunks will be used.
 
 
+## Quantification
+
+Once images are segmented, everything is saved in OME-Zarr files. The quantify command receives a folder where the zarr images reside.
+
+```
+gulliver quantify path/to/folder
+```
+
+It will generate three Excel files where each tab will correspond to each image found in the folder.
+
+```portal_regions.xlsx``` contains all the Sox9+ structures detected and information about their area (in $\mu ^2$), their class, to which portal vein they belong to and their labels in the segmented zarr image (see [Visualization](#visualization)).
+
+```portal_veins.xlsx``` contains all portal veins detected and information about their area (in $\mu ^2$), their distance to the nearest central vein (in $\mu$) and their labels in the segmented zarr image (see [Visualization](#visualization)).
+
+```central_veins.xlsx``` contains all central veins detected and information about their area (in $\mu ^2$), their distance to the nearest portal vein  (in $\mu$) and their labels in the segmented zarr image (see [Visualization](#visualization)).
+
+
 # Visualization
 
 To visualize results you should first install [napari](https://napari.org/stable/) following [these instructions](https://napari.org/stable/tutorials/fundamentals/installation.html#install-as-python-package-recommended).
