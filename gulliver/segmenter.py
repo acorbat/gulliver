@@ -333,7 +333,7 @@ def add_veins(segmentations: zarr.hierarchy.Group) -> None:
     GS positive region and portal regions considering elastin positive
     staining."""
     regions = find_vessel_regions(
-        segmentations["lumen"]["labels"],
+        segmentations["lumen"]["labels"][:] > 0,
         segmentations["elastin_positive"]["labels"],
     )
     temp_regions = regions[
