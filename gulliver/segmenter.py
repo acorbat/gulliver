@@ -336,9 +336,8 @@ def add_veins(segmentations: zarr.hierarchy.Group) -> None:
         segmentations["lumen"]["labels"][:] > 0,
         segmentations["elastin_positive"]["labels"],
     )
-    temp_regions = regions[
-        segmentations["elastin_positive"]["labels"][:] > 0
-    ] = 0
+    temp_regions = regions.copy()
+    temp_regions[segmentations["elastin_positive"]["labels"][:] > 0] = 0
     border_regions = find_borders(temp_regions, size=30)
     gs_table = relate_structures(
         border_regions, segmentations["gs_positive"]["labels"]
