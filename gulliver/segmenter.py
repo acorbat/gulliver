@@ -36,9 +36,7 @@ def segment_liver(nuclei_channel: np.ndarray) -> np.ndarray:
         liver_masks, footprint=disk(15, decomposition="sequence")
     )
     liver_masks = remove_small_holes(liver_masks, area_threshold=10**6)
-    liver_masks = binary_erosion(
-        liver_masks, disk(10, decomposition="sequence")
-    )
+    liver_masks = binary_erosion(liver_masks, disk(5, decomposition="sequence"))
     liver_masks = label(liver_masks)
     liver_masks = remove_small_objects(liver_masks, min_size=40000)
     return liver_masks
@@ -282,7 +280,9 @@ def clean_segmentations(segmentations: zarr.hierarchy.Group) -> None:
         if group[0] == "liver":
             continue
 
-        group[1]["labels"].set_mask_selection(liver_mask, 0)
+        group[1]["labels"].set_mask_selection(
+            binary_erosion(liver_mask, disk(20, decomposition="sequence")), 0
+        )
 
 
 def find_vessel_regions(
