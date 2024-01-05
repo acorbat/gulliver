@@ -213,29 +213,36 @@ def quantify_folder(folderpath: Path) -> None:
 
     logger.info(f"{len(filepaths)} images were found.")
     with pd.ExcelWriter(
-        folderpath / "portal_regions.xlsx"
-    ) as portal_region_writer, pd.ExcelWriter(
+        folderpath / "sox9_positive.xlsx"
+    ) as sox9_writer, pd.ExcelWriter(
         folderpath / "portal_veins.xlsx"
     ) as portal_vein_writer, pd.ExcelWriter(
         folderpath / "central_veins.xlsx"
-    ) as central_vein_writer:
+    ) as central_vein_writer, pd.ExcelWriter(
+        folderpath / "portal_regions.xlsx"
+    ) as lumen_writer, pd.ExcelWriter(
+        folderpath / "lumen_regions.xlsx"
+    ) as portal_region_writer:
         for filepath in tqdm(filepaths):
             logger.info(f"Quantifying file {filepath.stem}")
             (
                 portal_region_table,
                 portal_vein_table,
                 central_vein_table,
+                lumen_table,
             ) = quantify_file(path=filepath)
 
-            portal_region_table.to_excel(
-                portal_region_writer, sheet_name=filepath.stem
-            )
+            portal_region_table.to_excel(sox9_writer, sheet_name=filepath.stem)
             portal_vein_table.to_excel(
                 portal_vein_writer, sheet_name=filepath.stem
             )
             central_vein_table.to_excel(
                 central_vein_writer, sheet_name=filepath.stem
             )
+            portal_region_table.query("portal_vein > 0").to_excel(
+                portal_region_writer, sheet_name=filepath.stem
+            )
+            lumen_table.to_excel(lumen_writer, sheet_name=filepath.stem)
 
 
 if __name__ == "__main__":
