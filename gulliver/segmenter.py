@@ -355,7 +355,11 @@ def add_veins(segmentations: zarr.hierarchy.Group) -> None:
     )
 
     # To do: several steps here are probably innefficient
-    veins = relabel_image(regions, list(full_table["vein"].values))
+    veins = relabel_by_values(
+        regions,
+        labels=full_table["label"].values,
+        values=full_table["vein"].values,
+    )
     cv = segmentations.create_group("central_veins")
     cv = cv.create_dataset("labels", data=regions.copy())
     cv.set_mask_selection(veins != 2, 0)
