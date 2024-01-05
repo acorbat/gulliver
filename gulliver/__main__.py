@@ -8,7 +8,11 @@ import pandas as pd
 import pyclesperanto_prototype as cle
 from tqdm import tqdm
 
-from .quantify import get_vein_properties, get_portal_region_description
+from .quantify import (
+    get_vein_properties,
+    get_portal_region_description,
+    get_properties,
+)
 from .io import (
     get_image,
     add_labels,
@@ -20,7 +24,9 @@ from .segmenter import (
     segment_liver,
     clean_segmentations,
     add_veins,
+    relabel_by_values,
 )
+from .classifier import parse_to_bile_duct_numbers
 
 from . import __version__
 
@@ -147,8 +153,8 @@ def segment_folder(
 
 
 def quantify_file(path: Path) -> Tuple[pd.DataFrame]:
-    """Quantifies portal regions, portal veins and central veins in a single
-    file and returns all three tables"""
+    """Quantifies portal regions, portal veins, central veins and lumen in a
+    single file and returns all four tables"""
     image = get_image(path, 0)
     x_scale = image.attrs["multiscales"][0]["metadata"]["scale"]["x"]
 
@@ -161,10 +167,12 @@ def quantify_file(path: Path) -> Tuple[pd.DataFrame]:
     portal_vein_table = get_vein_properties(
         vein=portal_veins, other_vein=central_veins[:] > 1, scale=x_scale
     )
+
     logger.info("Quantifying Central Vein properties")
     central_vein_table = get_vein_properties(
         vein=central_veins, other_vein=portal_veins[:] > 1, scale=x_scale
     )
+
     logger.info("Quantifying Portal Region properties")
     portal_region_table = get_portal_region_description(
         sox9_positive=sox9_positive,
@@ -172,7 +180,30 @@ def quantify_file(path: Path) -> Tuple[pd.DataFrame]:
         portal_veins=portal_veins[:],
         scale=x_scale,
     )
-    return portal_region_table, portal_vein_table, central_vein_table
+
+    logger.info("Relabeling and saving bile duct classes")
+    bile_duct_numbers = portal_region_table["class"].apply(
+        parse_to_bile_duct_numbers
+    )
+    bile_duct_class_labeled = relabel_by_values(
+        sox9_positive,
+        labels=bile_duct_numbers.index.values,
+        values=bile_duct_numbers.values,
+    )
+    add_labels(
+        image,
+        label_image=bile_duct_class_labeled,
+        label_name="bile_duct_classes",
+    )
+
+    logger.info("Quantifying Lumen properties")
+    lumen_table = get_properties(lumen, scale=x_scale)
+    return (
+        portal_region_table,
+        portal_vein_table,
+        central_vein_table,
+        lumen_table,
+    )
 
 
 def quantify_folder(folderpath: Path) -> None:
