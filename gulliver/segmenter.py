@@ -176,7 +176,7 @@ def clean_lumen(lumen_prediction: np.ndarray) -> np.ndarray:
     polished_prediction = remove_small_holes(
         label(polished_prediction), area_threshold=5000
     )
-    return polished_prediction
+    return label(polished_prediction)
 
 
 def predict_gs_positive(image: np.ndarray) -> np.ndarray:
