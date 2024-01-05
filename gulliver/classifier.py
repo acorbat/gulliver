@@ -56,3 +56,15 @@ def parse_bile_duct_classes(class_number: int) -> str:
         5: "Single Cell",
     }
     return class_dictionary[class_number]
+
+
+def parse_to_bile_duct_numbers(class_name: str) -> int:
+    """Parses bile duct class number into class name"""
+    class_dictionary = {
+        "Well Formed": 1,
+        "Functional": 2,
+        "Open Circle": 3,
+        "Cluster": 4,
+        "Single Cell": 5,
+    }
+    return class_dictionary[class_name]
