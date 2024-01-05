@@ -291,17 +291,18 @@ def find_vessel_regions(
     """Finds big regions that could be portal triads, portal veins or central
     veins. It discards huge regions that could be not well stained regions. It
     uses the elastin channel to further clean segmentation"""
-    veins = binary_dilation(veins, disk(5, decomposition="sequence"))
+    veins[elastin_positive[:] > 0] = True
+    veins = binary_dilation(veins, disk(4, decomposition="sequence"))
     veins = label(veins)
-    veins = remove_small_objects(veins, min_size=600)
-    veins = np.logical_xor(remove_small_objects(veins, min_size=100000), veins)
-    veins = label(veins)
-    veins[elastin_positive] = 0
-    veins = erosion(veins, disk(7))
+    veins = remove_small_objects(veins, min_size=300)
+    veins = binary_dilation(veins > 0, disk(2, decomposition="sequence"))
     veins = remove_small_holes(veins, area_threshold=1000)
-    veins = remove_small_objects(veins, min_size=600)
-    veins = binary_closing(veins, disk(10, decomposition="sequence"))
+    veins = binary_erosion(veins, disk(10, decomposition="sequence"))
+    # veins[elastin_postive[:] > 0] = 0
+    veins = binary_opening(veins, disk(4, decomposition="sequence"))
+    # veins = remove_small_holes(veins, area_threshold=1000)
     veins = label(veins)
+    # veins = remove_small_objects(veins, min_size=300)
     return veins
 
 
@@ -335,7 +336,10 @@ def add_veins(segmentations: zarr.hierarchy.Group) -> None:
         segmentations["lumen"]["labels"],
         segmentations["elastin_positive"]["labels"],
     )
-    border_regions = find_borders(regions)
+    temp_regions = regions[
+        segmentations["elastin_positive"]["labels"][:] > 0
+    ] = 0
+    border_regions = find_borders(temp_regions, size=30)
     gs_table = relate_structures(
         border_regions, segmentations["gs_positive"]["labels"]
     )
