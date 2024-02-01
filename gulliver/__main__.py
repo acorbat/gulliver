@@ -198,11 +198,17 @@ def quantify_file(path: Path) -> Tuple[pd.DataFrame]:
 
     logger.info("Quantifying Lumen properties")
     lumen_table = get_properties(lumen, scale=x_scale)
+
+    logger.info("Quantifying Liver properties")
+    liver_labels = get_labels_from_zarr(image, "liver")
+    liver_table = get_properties(liver_labels, scale=x_scale)
+
     return (
         portal_region_table,
         portal_vein_table,
         central_vein_table,
         lumen_table,
+        liver_table,
     )
 
 
@@ -222,7 +228,9 @@ def quantify_folder(folderpath: Path) -> None:
         folderpath / "portal_regions.xlsx"
     ) as portal_region_writer, pd.ExcelWriter(
         folderpath / "lumen_regions.xlsx"
-    ) as lumen_writer:
+    ) as lumen_writer, pd.ExcelWriter(
+        folderpath / "liver_parts.xlsx"
+    ) as liver_writer:
         for filepath in tqdm(filepaths):
             logger.info(f"Quantifying file {filepath.stem}")
             (
@@ -230,6 +238,7 @@ def quantify_folder(folderpath: Path) -> None:
                 portal_vein_table,
                 central_vein_table,
                 lumen_table,
+                liver_table,
             ) = quantify_file(path=filepath)
 
             portal_region_table.to_excel(sox9_writer, sheet_name=filepath.stem)
@@ -243,6 +252,7 @@ def quantify_folder(folderpath: Path) -> None:
                 portal_region_writer, sheet_name=filepath.stem
             )
             lumen_table.to_excel(lumen_writer, sheet_name=filepath.stem)
+            liver_table.to_excel(liver_writer, sheet_name=filepath.stem)
 
 
 if __name__ == "__main__":

@@ -63,6 +63,13 @@ def get_properties(
     return pd.DataFrame.from_dict(properties)
 
 
+def get_liver_properties(liver_mask: np.ndarray, scale: float) -> pd.DataFrame:
+    """Builds a table with the areas of all the pieces of liver found."""
+    properties = get_properties(liver_mask, scale=scale)
+    properties.set_index("label", verify_integrity=True, inplace=True)
+    return properties
+
+
 def get_sox9_properties(
     sox9_positive: np.ndarray,
     lumen: np.ndarray,

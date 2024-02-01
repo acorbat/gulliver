@@ -42,13 +42,19 @@ Once images are segmented, everything is saved in OME-Zarr files. The quantify c
 gulliver quantify path/to/folder
 ```
 
-It will generate three Excel files where each tab will correspond to each image found in the folder.
+It will generate six Excel files where each tab will correspond to each image found in the folder.
 
-```portal_regions.xlsx``` contains all the Sox9+ structures detected and information about their area (in $\mu ^2$), their class, to which portal vein they belong to and their labels in the segmented zarr image (see [Visualization](#visualization)).
+```portal_regions.xlsx``` contains all the Sox9+ structures detected in portal regions and information about their area (in $\mu ^2$), their class, to which portal vein they belong to and their labels in the segmented zarr image (see [Visualization](#visualization)).
+
+```sox9_positive.xlsx``` contains all the Sox9+ structures detected, even if they are far away from portal veins, and information about their area (in $\mu ^2$), their class, to which portal vein they belong to (0 if the belong to no portal region) and their labels in the segmented zarr image (see [Visualization](#visualization)).
 
 ```portal_veins.xlsx``` contains all portal veins detected and information about their area (in $\mu ^2$), their distance to the nearest central vein (in $\mu$) and their labels in the segmented zarr image (see [Visualization](#visualization)).
 
 ```central_veins.xlsx``` contains all central veins detected and information about their area (in $\mu ^2$), their distance to the nearest portal vein  (in $\mu$) and their labels in the segmented zarr image (see [Visualization](#visualization)).
+
+```lumen_regions.xlsx``` contains all lumens detected irrespective of size and information about their area (in $\mu ^2$), their morphometric properties and their labels in the segmented zarr image (see [Visualization](#visualization)).
+
+```liver_parts.xlsx``` contains all liver regions detected and information about their area (in $\mu ^2$), their morphometric properties and their labels in the segmented zarr image (see [Visualization](#visualization)).
 
 
 # Visualization
