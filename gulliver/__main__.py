@@ -220,9 +220,9 @@ def quantify_folder(folderpath: Path) -> None:
         folderpath / "central_veins.xlsx"
     ) as central_vein_writer, pd.ExcelWriter(
         folderpath / "portal_regions.xlsx"
-    ) as lumen_writer, pd.ExcelWriter(
+    ) as portal_region_writer, pd.ExcelWriter(
         folderpath / "lumen_regions.xlsx"
-    ) as portal_region_writer:
+    ) as lumen_writer:
         for filepath in tqdm(filepaths):
             logger.info(f"Quantifying file {filepath.stem}")
             (
