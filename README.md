@@ -74,18 +74,14 @@ It will generate six Excel files where each tab will correspond to each image fo
 
 # Visualization
 
-To visualize results you should first install [napari](https://napari.org/stable/) following [these instructions](https://napari.org/stable/tutorials/fundamentals/installation.html#install-as-python-package-recommended).
-
-With napari installed, you can start it by activating the environment and running it.
+To visualize results you start it activating the environment and running napari.
 
 ```
-conda activate napari-env
+conda activate gulliver
 napari
 ```
 
-Once opened, you should open the menu for ```Plugins\Install Plugins```. There you should search for [napari-ome-zarr](https://github.com/ome/napari-ome-zarr) and install it (and restart napari).
-
-Now that napari with the napari-ome-zarr is running, you can drag and drop ```.zarr``` files (they look like folders) into napari. If a prompt appears asking what reader to use, choose napari-ome-zarr.
+Once Napari starts, you can drag and drop ```.zarr``` files (they look like folders) into napari. If a prompt appears asking what reader to use, choose napari-ome-zarr.
 
 
 # Rationale
