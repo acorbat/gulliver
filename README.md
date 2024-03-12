@@ -5,6 +5,21 @@ An image analysis package for whole slide liver immunostainings.
 
 # Installation
 
+You can first install anaconda through the [webpage](https://www.anaconda.com/download).
+
+Second you can start an Anaconda Prompt (by looking for it in the start menu) and create a new environment with the following:
+
+```
+conda create -n gulliver -c conda-forge python=3.11
+```
+
+After accepting and creating this environment, you will have to activate it and install GulLiver:
+
+```
+conda activate gulliver
+pip install git+https://github.com/acorbat/gulliver.git
+```
+
 
 # Usage
 
