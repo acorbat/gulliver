@@ -162,14 +162,23 @@ def separate_holes_and_debris(
     """Separates first semantic segmentation of holes into holes and debris"""
     holes = hole_segmentation == 2
     not_well_stained = hole_segmentation == 3
+    holes = holes.get()
+    not_well_stained = not_well_stained.get()
 
-    not_well_stained = binary_closing(not_well_stained, footprint=disk(3))
-    return holes, not_well_stained
+    disregard_areas = (
+        remove_small_objects(label(not_well_stained), min_size=500000) > 0
+    )
+    disregard_areas = binary_dilation(disregard_areas, footprint=disk(5))
+    not_well_stained[disregard_areas] = 0
+
+    holes[disregard_areas] = 0
+    holes[not_well_stained] = 1
+    return holes, disregard_areas
 
 
-def clean_lumen(lumen_prediction: np.ndarray) -> np.ndarray:
+def clean_lumen(lumen: np.ndarray) -> np.ndarray:
     """Morphological operations to clean up the lumina"""
-    polished_prediction = binary_dilation(lumen_prediction > 1, disk(2))
+    polished_prediction = binary_dilation(lumen, disk(2))
     polished_prediction = remove_small_holes(
         label(polished_prediction), area_threshold=5000
     )
@@ -234,7 +243,8 @@ def find_structures(
         chunk_shape=chunk_shape,
         processing_function=predict_holes,
     )
-    lumen = clean_lumen(holes)
+    lumen, disregard_areas = separate_holes_and_debris(holes)
+    lumen = clean_lumen(lumen)
 
     logging.info("Segmenting GS channel")
     gs_positive = chunk_and_process_2d_array(
@@ -254,6 +264,7 @@ def find_structures(
     sox9_positive[lumen > 0] = 0
 
     logging.info("Labelling Sox9+ cells")
+    sox9_positive[disregard_areas] = 0
     sox9_positive = label(sox9_positive)
     sox9_positive = remove_small_objects(sox9_positive, min_size=50)
 
@@ -261,6 +272,8 @@ def find_structures(
     s9 = s9.create_dataset("labels", data=sox9_positive)
     l = segmentations.create_group("lumen")
     l = l.create_dataset("labels", data=lumen)
+    dis = segmentations.create_group("disregard_area")
+    dis = dis.create_dataset("labels", data=disregard_areas)
     gs = segmentations.create_group("gs_positive")
     gs = gs.create_dataset("labels", data=gs_positive)
     el = segmentations.create_group("elastin_positive")
