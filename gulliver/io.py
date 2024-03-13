@@ -36,18 +36,22 @@ def get_image(
         "channels": [
             {
                 "color": "FFFFFF",
+                "window": {"min": 0, "start": 0, "end": 65536, "max": 65536},
                 "label": "DAPI",
             },
             {
                 "color": "FFFF00",
+                "window": {"min": 0, "start": 0, "end": 65536, "max": 65536},
                 "label": "Sox9",
             },
             {
                 "color": "FF00FF",
+                "window": {"min": 0, "start": 0, "end": 65536, "max": 65536},
                 "label": "GS",
             },
             {
                 "color": "00FFFF",
+                "window": {"min": 0, "start": 0, "end": 65536, "max": 65536},
                 "label": "elastin",
             },
         ]
