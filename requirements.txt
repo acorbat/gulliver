@@ -2,3 +2,4 @@ numpy
 scikit-image
 napari[all]
 napari-ome-zarr
+napari_czifile2
