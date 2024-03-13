@@ -16,9 +16,9 @@ And then classifying:
 
 Once segmentation and classification has been done, there are steps pertaining the quantification of the different objects:
 - [vein quantification](#vein-quantification)
-- [portal region quantification]
+- [portal region quantification](#portal-region-quantification)
 
-Finally, the whole pipeline was combined into single functions that are run with a command line interface (CLI).
+Finally, the [whole pipeline](#whole-pipeline) was combined into single functions that are run with a command line interface (CLI).
 
 
 ## Liver Segmentation
@@ -59,3 +59,9 @@ Quantification of portal and central veins like their area covered, distance bet
 ## Portal region quantification
 
 Portal regions are defined as the area surrounding the portal veins, and every Sox9+ structure in this area is then quantified as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/portal_region_description.ipynb).
+
+
+## Whole pipeline
+
+In [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/whole_pipeline.ipynb) a complete run for a single file is shown.
+These functions are later wrapped into commands that can be run over files or folders from the command line interface.
