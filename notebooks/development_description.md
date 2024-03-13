@@ -12,7 +12,7 @@ With this in consideration, we worked in segmenting:
 
 And then classifying
 - [lumina](#vein-classification) according to other stainings
-- Sox9 structures with machine learning based classification
+- [Sox9 structures](#bile-duct-classification) with machine learning based classification
 
 Finally, the whole pipeline was combined into single functions that are run with a command line interface (CLI).
 
@@ -40,3 +40,8 @@ Elastin and GS signals were identfied from their respective channels as shown in
 ## Vein Classification
 
 Information from segmented lumina and GS and Elastin signals were combined to identify veins and classify them into portal and central, as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/vein_classification.ipynb).
+
+
+## Bile duct classification
+
+With the information from the lumina and morphometrics of the Sox9+ structures, we train a classifier to distinguish between each bile duct class as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/bile_duct_classification.ipynb)
