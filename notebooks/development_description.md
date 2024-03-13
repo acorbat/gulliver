@@ -10,9 +10,12 @@ With this in consideration, we worked in segmenting:
 - [lumina](#lumina-segmentation) from autofluorescence and combination of channels;
 - [elastin and GS](#elastin-and-gs-segmentation) from their respective channels.
 
-And then classifying
+And then classifying:
 - [lumina](#vein-classification) according to other stainings
 - [Sox9 structures](#bile-duct-classification) with machine learning based classification
+
+Once segmentation and classification has been done, there are steps pertaining the quantification of the different objects:
+- [vein quantification](#vein-quantification)
 
 Finally, the whole pipeline was combined into single functions that are run with a command line interface (CLI).
 
@@ -45,3 +48,8 @@ Information from segmented lumina and GS and Elastin signals were combined to id
 ## Bile duct classification
 
 With the information from the lumina and morphometrics of the Sox9+ structures, we train a classifier to distinguish between each bile duct class as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/bile_duct_classification.ipynb)
+
+
+# Vein quantification
+
+Quantification of portal and central veins like their area covered, distance between them and quantity are addressed in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/intervein_distance.ipynb).
