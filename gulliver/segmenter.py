@@ -61,14 +61,16 @@ def make_lumen_channel(
     sox9_channel: np.ndarray,
 ) -> np.ndarray:
     """Combines DAPI, elastin and GS channels to highlight lumina"""
-    lumen_channel = (
-        dapi_channel.astype(float)
-        - elastin_channel.astype(float)
-        + gs_channel.astype(float)
-        + sox9_channel.astype(float)
-    )
+    # lumen_channel = (
+    #     dapi_channel.astype(float)
+    #     - elastin_channel.astype(float)
+    #     + gs_channel.astype(float)
+    #     + sox9_channel.astype(float)
+    # )
 
-    lumen_channel = np.clip(lumen_channel, a_max=2**16, a_min=0)
+    lumen_channel = np.clip(
+        elastin_channel.astype(float), a_max=2**16, a_min=0
+    )
     return lumen_channel
 
 
@@ -162,8 +164,6 @@ def separate_holes_and_debris(
     """Separates first semantic segmentation of holes into holes and debris"""
     holes = hole_segmentation == 2
     not_well_stained = hole_segmentation == 3
-    holes = holes.get()
-    not_well_stained = not_well_stained.get()
 
     disregard_areas = (
         remove_small_objects(label(not_well_stained), min_size=500000) > 0
@@ -311,6 +311,7 @@ def find_vessel_regions(
     veins = remove_small_holes(veins, area_threshold=1000)
     veins = binary_erosion(veins, disk(10, decomposition="sequence"))
     # veins[elastin_postive[:] > 0] = 0
+    veins[elastin_positive[:] > 0] = 0
     veins = binary_opening(veins, disk(4, decomposition="sequence"))
     # veins = remove_small_holes(veins, area_threshold=1000)
     veins = label(veins)

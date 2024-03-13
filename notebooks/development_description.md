@@ -8,10 +8,10 @@ With this in consideration, we worked in segmenting:
 - [livers from DAPI staining;](#liver-segmentation)
 - [Sox9 structures](#sox9-structure-segmentation) from Sox9 staining;
 - [lumina](#lumina-segmentation) from autofluorescence and combination of channels;
-- elastin and GS from their respective channels.
+- [elastin and GS](#elastin-and-gs-segmentation) from their respective channels.
 
 And then classifying
-- lumina according to other stainings
+- [lumina](#vein-classification) according to other stainings
 - Sox9 structures with machine learning based classification
 
 Finally, the whole pipeline was combined into single functions that are run with a command line interface (CLI).
@@ -30,3 +30,13 @@ Combinations of Sox9, DAPI, elastin and GS channels were used to clean up Sox9 c
 ## Lumina segmentation
 
 Combinations of Sox9, DAPI, elastin and GS channels were used again to increase contrast between lumina and tissue (making use of autofluorescence) as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/bile_duct_segmentation.ipynb).
+
+
+## Elastin and GS segmentation
+
+Elastin and GS signals were identfied from their respective channels as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/vein_classification.ipynb).
+
+
+## Vein Classification
+
+Information from segmented lumina and GS and Elastin signals were combined to identify veins and classify them into portal and central, as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/vein_classification.ipynb).
