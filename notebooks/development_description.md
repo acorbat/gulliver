@@ -16,6 +16,7 @@ And then classifying:
 
 Once segmentation and classification has been done, there are steps pertaining the quantification of the different objects:
 - [vein quantification](#vein-quantification)
+- [portal region quantification]
 
 Finally, the whole pipeline was combined into single functions that are run with a command line interface (CLI).
 
@@ -50,6 +51,11 @@ Information from segmented lumina and GS and Elastin signals were combined to id
 With the information from the lumina and morphometrics of the Sox9+ structures, we train a classifier to distinguish between each bile duct class as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/bile_duct_classification.ipynb)
 
 
-# Vein quantification
+## Vein quantification
 
 Quantification of portal and central veins like their area covered, distance between them and quantity are addressed in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/intervein_distance.ipynb).
+
+
+## Portal region quantification
+
+Portal regions are defined as the area surrounding the portal veins, and every Sox9+ structure in this area is then quantified as shown in [this notebook](https://github.com/acorbat/gulliver/blob/main/notebooks/portal_region_description.ipynb).
