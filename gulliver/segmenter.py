@@ -310,7 +310,6 @@ def find_vessel_regions(
     veins = binary_dilation(veins > 0, disk(2, decomposition="sequence"))
     veins = remove_small_holes(veins, area_threshold=1000)
     veins = binary_erosion(veins, disk(10, decomposition="sequence"))
-    # veins[elastin_postive[:] > 0] = 0
     veins[elastin_positive[:] > 0] = 0
     veins = binary_opening(veins, disk(4, decomposition="sequence"))
     # veins = remove_small_holes(veins, area_threshold=1000)
