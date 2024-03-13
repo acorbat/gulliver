@@ -180,7 +180,8 @@ def clean_lumen(lumen: np.ndarray) -> np.ndarray:
     """Morphological operations to clean up the lumina"""
     polished_prediction = binary_dilation(lumen, disk(2))
     polished_prediction = remove_small_holes(
-        label(polished_prediction), area_threshold=5000
+        polished_prediction,
+        area_threshold=5000,
     )
     return label(polished_prediction)
 
