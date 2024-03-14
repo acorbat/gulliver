@@ -5,3 +5,4 @@ napari-ome-zarr
 napari_czifile2
 pyclesperanto_prototype
 apoc
+openpyxl
