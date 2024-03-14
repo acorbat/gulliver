@@ -2,6 +2,10 @@
 
 An image analysis package for whole slide liver immunostainings.
 
+The goal is to segment and classify Sox9+ structures, as well as identify and classify veins. Output is quantification of distance between different types of veins, area covered by each vein type and number of each class of Sox9+ structure per portal vein.
+
+Details on how the pipeline has been developed can be found [here](https://github.com/acorbat/gulliver/blob/main/notebooks/development_description.md).
+
 
 # Installation
 
